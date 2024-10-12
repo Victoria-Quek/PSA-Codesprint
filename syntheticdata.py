@@ -2,7 +2,8 @@ import pandas as pd
 import numpy as np
 import random
 import string
-from datetime import datetime, timedelta
+
+from ShipYard import *
 
 # Set the parameters
 ships = 1000 # Number of ships
@@ -12,6 +13,18 @@ ship_types = ['Cargo', 'Container']
 ship_sizes = ['Small', 'Medium', 'Large']
 
 np.random.seed(np.random.randint(1, 200)) # set random seed
+
+# Generate synthetic port data
+ports = np.random.randint(10, 30)
+print("\nNumber of ports:", ports)
+
+def generate_random_port_code():
+    return 'P' + ''.join(random.choices(string.digits, k = 3))
+
+port_data = pd.DataFrame({'Port Code': [generate_random_port_code() for _ in range(ports)]})
+
+print("Port Data:")
+print(port_data.head(10))
 
 # Generate synthetic container data
 def generate_random_container_id():
@@ -23,7 +36,6 @@ print("\nNumber of containers:", containers)
 container_data = pd.DataFrame({
     'Container ID': [generate_random_container_id() for i in range(containers)], # container ID
     'Weight (kg)': np.random.randint(1000, 20000, size = containers), # Random weight between 1,000 and 20,000 kg
-    'Content Type': np.random.choice(['Electronics', 'Clothing', 'Food', 'Machinery', 'Furniture'], size = containers) # contents in the container
 })
 
 print("Container Data:")
@@ -46,18 +58,6 @@ ship_data = pd.DataFrame({
 print("Ship Data:")
 print(ship_data.head(20))
 
-
-# Generate synthetic port data
-ports = np.random.randint(10, 30)
-print("\nNumber of ports:", ports)
-
-def generate_random_port_code():
-    return 'P' + ''.join(random.choices(string.digits, k = 3))
-
-port_data = pd.DataFrame({'Port Code': [generate_random_port_code() for _ in range(ports)]})
-
-print("Port Data:")
-print(port_data.head(10))
 
 
 # Set to track assigned containers
