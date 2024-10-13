@@ -1,6 +1,10 @@
 # Here, we simulate ships in transit unloading specific containers and loading specific containers before departure
-# We assume that it takes the same time to remove containers, and the containers to be loaded are already available at the port
+# We assume that it takes the same time to remove and add containers, and the containers to be loaded are already available at the port
 # We also assume that each ship only transits in Singapore once within the speciifed time frame.
+
+# When a ship arrives and no berth is available, it waits in the queue.
+# As time progresses, the simulation checks for berth availability and assigns the next ship in line when a berth becomes free.
+# This minimizes delays by ensuring that no berth remains empty if there are ships waiting.
 
 import numpy as np
 import random
