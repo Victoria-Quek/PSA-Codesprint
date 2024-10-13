@@ -9,7 +9,7 @@ from ShipYard import *
 np.random.seed(2024)
 
 # 1. Generate Port Data
-total_ports = np.random.randint(10, 30)
+total_ports = 25
 print("\nNumber of ports:", total_ports)
 
 def generate_ports(num_ports):
@@ -31,7 +31,7 @@ print(port_data.head(10))
 
 
 # 2. Generate Ship Data
-total_ships = np.random.randint(10**2, 5*10**2)
+total_ships = 500
 print("\nNumber of ships:", total_ships)
 
 def generate_ships(num_ships):
@@ -79,7 +79,7 @@ print(ships_data.head(50))
 
 
 # 3. Generate Container data
-total_containers = np.random.randint(5*10**3, 10**4)
+total_containers = 8000
 print("\nNumber of containers:", total_containers)
 
 def generate_containers(num_containers):
@@ -92,7 +92,7 @@ def generate_containers(num_containers):
         container_id = generate_random_container_code()
         eligible_ships = ships_data.loc[ships_data['empty_slots'] > 0, 'ship_id'].values
         ship_ID = random.choice(eligible_ships)
-        ships_data[ships_data['ship_id'] == ship_ID]['empty_slots'] -= 1
+        ships_data.loc[ships_data['ship_id'] == ship_ID, 'empty_slots'] -= 1
         
         containers_data.append({
             'container_id': container_id,
