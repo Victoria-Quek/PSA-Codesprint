@@ -165,3 +165,23 @@ r2 = r2_score(y_test, y_pred)
 
 print(f'MSE: {mse}')
 print(f'R^2 Score: {r2}')
+
+plt.figure(figsize=(10, 6))
+sns.scatterplot(x=y_test, y=y_pred)
+plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'k--', lw=2, color='red')  # diagonal line
+plt.title('Actual vs Predicted Values')
+plt.xlabel('Actual Values')
+plt.ylabel('Predicted Values')
+plt.grid()
+plt.show()
+
+# 2. Residual Plot
+residuals = y_test - y_pred
+plt.figure(figsize=(10, 6))
+sns.scatterplot(x=y_pred, y=residuals)
+plt.axhline(0, color='red', linestyle='--')
+plt.title('Residual Plot')
+plt.xlabel('Predicted Values')
+plt.ylabel('Residuals')
+plt.grid()
+plt.show()
