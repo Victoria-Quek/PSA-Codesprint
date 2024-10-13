@@ -39,9 +39,12 @@ simulation_time_step = timedelta(minutes = 15)
 
 # Randomly drop off and load containers in Singapore
 def random_containers(ship):
-    # Random number of containers to drop off and load (within ship's capacity)
     containers_on_board = ship['max_capacity'] - ship['empty_slots']
-    containers_to_drop_off = random.randint(1, containers_on_board)
+    if containers_on_board > 0:
+        containers_to_drop_off = random.randint(1, containers_on_board)
+    else:
+        containers_to_drop_off = 0  # or handle this case as needed
+
     containers_to_load = random.randint(1, ship['empty_slots'] + containers_to_drop_off)
     return containers_to_drop_off, containers_to_load
 
@@ -162,4 +165,3 @@ r2 = r2_score(y_test, y_pred)
 
 print(f'MSE: {mse}')
 print(f'R^2 Score: {r2}')
-
