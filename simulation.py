@@ -1,100 +1,106 @@
+# Here, we simulate ships in transit unloading specific containers and loading specific containers before departure
+# We assume that it takes the same time to remove containers, and the containers to be loaded are already available at the port
+# We also assume that each ship only transits in Singapore once within the speciifed time frame.
+
 import numpy as np
 import random
-import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
 from datetime import datetime, timedelta
 
+# Load data from CSV files
 container_data = pd.read_csv("data/containers.csv")
 port_data = pd.read_csv("data/ports.csv")
 ship_data = pd.read_csv("data/ships.csv")
 
-# Convert arrival_time and departure_time to datetime objects
+# Convert arrival_time to datetime object
 ship_data['arrival_time'] = pd.to_datetime(ship_data['arrival_time'])
-ship_data['departure_time'] = pd.to_datetime(ship_data['departure_time'])
 
-random.seed(2024)
-
-# Define the simulation time frame
-simulation_start = datetime(2024, 10, 13, 0, 0) # Start at 13 Oct 2024 00:00
-simulation_end = datetime(2024, 10, 23, 0, 15) # End at 23 Oct 2024 00:15
-current_time = simulation_start
-
-# Create flags to track if a ship has been unloaded or loaded
-unloaded_ships = set()
-loaded_ships = set()
-
-# Number of berths available
+# Simulation settings
 num_berths = 5
 berths = {i + 1: None for i in range(num_berths)}  # 5 berths initialized as empty
+berth_times = {i + 1: None for i in range(num_berths)}  # Track end times for each berth
+transaction_log = []  # Log of all transactions
+waiting_queue = []  # Queue for waiting ships
+simulation_time_step = timedelta(minutes=15)
 
-# Function to simulate unloading and loading time
-def simulate_container_removal(ship, containers_to_unload):
-    # Time taken to remove the containers is based on the stack height
-    base_time = 1  # Time per container
-    return containers_to_unload * base_time
+# Randomly drop off and load containers in Singapore
+def random_containers(ship):
+    # Random number of containers to drop off and load (within ship's capacity)
+    containers_on_board = ship['max_capacity'] - ship['empty_slots']
+    containers_to_drop_off = random.randint(1, containers_on_board)
+    containers_to_load = random.randint(1, ship['empty_slots'] + containers_to_drop_off)
+    
+    return containers_to_drop_off, containers_to_load
 
-# Simulate operations for every 10 minutes in the defined time frame
-while current_time < simulation_end:
-    print(f"\nCurrent Time: {current_time.strftime('%Y-%m-%d %H:%M')}")
+# Function to calculate total time needed for drop-off and load operations
+def calculate_operation_time(containers_to_drop_off, containers_to_load):
+    time_per_container = 1  # Assume 1 minute per container
+    total_time = (containers_to_drop_off + containers_to_load) * time_per_container
+    return total_time
 
-    # Display current status of berths
-    for berth_id, ship_id in berths.items():
-        if ship_id is None:
-            print(f"Berth {berth_id}: Empty")
-        else:
-            print(f"Berth {berth_id}: Ship ID {ship_id}")
+# Assign a ship to a berth if one is available
+def assign_berth(ship, current_time):
+    for berth_id, end_time in berth_times.items():
+        if end_time is None or end_time <= current_time:
+            # Calculate drop-off and load operations
+            containers_to_drop_off, containers_to_load = random_containers(ship)
+            operation_time = calculate_operation_time(containers_to_drop_off, containers_to_load)
+            
+            # Determine the new departure time based on operation time
+            departure_time = current_time + timedelta(minutes=operation_time)
+            
+            # Log the operation
+            transaction_log.append({
+                'ship_id': ship['ship_id'],
+                'berth': berth_id,
+                'arrival_time': current_time,
+                'containers_dropped_off': containers_to_drop_off,
+                'containers_loaded': containers_to_load,
+                'operation_time': operation_time,
+                'departure_time': departure_time
+            })
+            
+            # Assign the ship to the berth and update berth timing
+            berths[berth_id] = ship['ship_id']
+            berth_times[berth_id] = departure_time
+            
+            print(f"Ship {ship['ship_id']} docked at Berth {berth_id}, "
+                  f"dropped off {containers_to_drop_off} containers, loaded {containers_to_load} containers, "
+                  f"departing at {departure_time}.")
+            
+            return True  # Berth assignment successful
+    return False  # No berths available
 
-    for i in range(1, num_berths + 1):
-        # Check if the berth is empty
-        if berths[i] is None:
-            for index, ship in ship_data.iterrows():
-                # Check if the ship is available to be served
-                if (ship['arrival_time'] <= current_time < ship['departure_time']) and (ship['ship_id'] not in unloaded_ships):
-                    # Simulate unloading containers
-                    containers_to_unload = min(ship['max_capacity'] - ship['empty_slots'], 5)  # Example logic
-                    if containers_to_unload > 0:
-                        time_needed = simulate_container_removal(ship, containers_to_unload)
-                        print(f"Serving Ship ID {ship['ship_id']} at Berth {i}: Unloading {containers_to_unload} containers (will take {time_needed} minutes).")
-                        # Update time and berth assignment
-                        current_time += timedelta(minutes=time_needed)
-                        ship['empty_slots'] += containers_to_unload  # Update empty slots
-                        unloaded_ships.add(ship['ship_id'])  # Mark as unloaded
-                        berths[i] = ship['ship_id']  # Assign ship to berth
-                        break
+# Process each ship's arrival, docking, and departure
+for index, ship in ship_data.iterrows():
+    arrival_time = ship['arrival_time']
+    
+    # Try to assign a berth upon arrival
+    if not assign_berth(ship, arrival_time):
+        print(f"No berth available for Ship {ship['ship_id']} at {arrival_time}. Adding to the waiting queue.")
+        waiting_queue.append((ship, arrival_time))  # Add ship to the queue
 
-        # Check if any ship at this berth is departing
-        if berths[i] is not None:
-            ship_id = berths[i]
-            ship_row = ship_data[ship_data['ship_id'] == ship_id]
+# After initial processing, manage the waiting queue and free berths as operations complete
+current_time = min(ship_data['arrival_time'])  # Start from the earliest arrival time
 
-            if not ship_row.empty:
-                departure_time = ship_row['departure_time'].values[0]
+while waiting_queue or any(berth_times.values()):
+    # Check if any berth is available
+    for berth_id, end_time in berth_times.items():
+        if end_time and current_time >= end_time:
+            print(f"Berth {berth_id} is now free at {current_time}.")
+            berths[berth_id] = None  # Free the berth
+            berth_times[berth_id] = None  # Reset berth end time
+    
+    # Try to assign a waiting ship to a free berth
+    for ship, arrival_time in waiting_queue[:]:
+        if assign_berth(ship, current_time):
+            waiting_queue.remove((ship, arrival_time))  # Remove the ship from the queue after assignment
+    
+    # Move forward in time by the simulation step (15 minutes)
+    current_time += simulation_time_step
 
-                # Ensure departure_time is a datetime object for comparison
-                if isinstance(departure_time, (pd.Timestamp, str)):
-                    if isinstance(departure_time, str):
-                        departure_time = pd.to_datetime(departure_time)  # Convert to datetime if it's a string
-                    departure_time = departure_time.to_pydatetime()  # Convert pd.Timestamp to datetime
-
-                # Make sure current_time is also a datetime
-                if not isinstance(current_time, datetime):
-                    raise TypeError("current_time should be a datetime object")
-
-                # Now compare current_time and departure_time
-                if current_time >= departure_time:
-                    print(f"Ship ID {ship_id} at Berth {i} is departing.")
-                    # Simulate loading containers
-                    containers_to_load = min(ship_row['empty_slots'].values[0], 3)  # Example logic
-                    if containers_to_load > 0:
-                        time_needed = simulate_container_removal(ship_row, containers_to_load)
-                        print(f"Loading {containers_to_load} containers onto Ship ID {ship_id} (will take {time_needed} minutes).")
-                        current_time += timedelta(minutes=time_needed)
-                        ship_row['empty_slots'] -= containers_to_load  # Update empty slots
-                        loaded_ships.add(ship_id)  # Mark as loaded
-
-                    # Free up the berth
-                    berths[i] = None
-
-    # Increment the time by ten minutes
-    current_time += timedelta(minutes = 15)
+# After the simulation, print the transaction log
+print("\nTransaction Log:")
+transaction_log_df = pd.DataFrame(transaction_log)
+print(transaction_log_df)
+transaction_log_df.to_csv("data/transaction_log.csv", index = False)
