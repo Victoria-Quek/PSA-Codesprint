@@ -82,7 +82,7 @@ print(ships_data.head(50))
 total_containers = 8000
 print("\nNumber of containers:", total_containers)
 
-def generate_containers(num_containers):
+def generate_containers(ships_data, num_containers):
     containers_data = []
     
     def generate_random_container_code():
@@ -101,7 +101,7 @@ def generate_containers(num_containers):
     
     return pd.DataFrame(containers_data)
 
-containers_data = generate_containers(total_containers)
+containers_data = generate_containers(ships_data, total_containers)
 
 print("Container Data:")
 print(containers_data.head(50))
