@@ -2,64 +2,56 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pandas as pd
+from datetime import datetime, timedelta
 
-class ShipyardSimulation:
-    def __init__(self, num_runs):
-        self.num_runs = num_runs
-        self.results = []
+container_data = pd.read_csv("data/containers.csv")
+port_data = pd.read_csv("data/ports.csv")
+ship_data = pd.read_csv("data/ships.csv")
 
-    def load_container(self, container_type):
-        load_time = np.random.exponential(scale=5)  # Example average loading time
-        return load_time
+# Convert arrival_time and departure_time to datetime objects
+ship_data['arrival_time'] = pd.to_datetime(ship_data['arrival_time'])
+ship_data['departure_time'] = pd.to_datetime(ship_data['departure_time'])
 
-    def unload_container(self, container_type):
-        unload_time = np.random.exponential(scale=5)  # Example average unloading time
-        return unload_time
+random.seed(2024)
 
-    def run_single_simulation(self):
-        total_time = 0
-        containers_to_load = random.randint(5, 20)  # Random number of containers
-        for _ in range(containers_to_load):
-            load_time = self.load_container("standard")
-            total_time += load_time
-            unload_time = self.unload_container("standard")
-            total_time += unload_time
-        return total_time
+# Define the simulation time frame
+simulation_start = datetime(2024, 10, 13, 0, 0) # Start at 13 Oct 2024 00:00
+simulation_end = datetime(2024, 10, 23, 0, 15) # End at 23 Oct 2024 00:15
+current_time = simulation_start
 
-    def run_simulations(self):
-        for _ in range(self.num_runs):
-            total_time = self.run_single_simulation()
-            self.results.append(total_time)
+# Create flags to track if a ship has been unloaded or loaded
+unloaded_ships = set()
+loaded_ships = set()
 
-    def visualize_results(self):
-        # Histogram
-        plt.figure(figsize=(12, 6))
-        plt.subplot(1, 3, 1)
-        plt.hist(self.results, bins=30, color='skyblue', edgecolor='black')
-        plt.title('Histogram of Total Operation Times')
-        plt.xlabel('Total Time')
-        plt.ylabel('Frequency')
+# Simulate operations for every 10 minutes in the defined time frame
+while current_time < simulation_end:
+    print(f"\nCurrent Time: {current_time.strftime('%Y-%m-%d %H:%M')}")
 
-        # Box Plot
-        plt.subplot(1, 3, 2)
-        sns.boxplot(data=self.results)
-        plt.title('Box Plot of Total Operation Times')
-        plt.ylabel('Total Time')
+    # Check for activities in the last 15 minutes for each ship
+    for index, ship in ship_data.iterrows():
+        
+        # Check if the ship has not been unloaded yet
+        if (ship['ship_id'] not in unloaded_ships) and (ship['arrival_time'] <= current_time < ship['departure_time']):
+            print(f"Ship ID {ship['ship_id']} has arrived.")
+            print(f"Capacity: {ship['max_capacity']}")
+            # Simulate unloading containers
+            containers_to_unload = min(ship['max_capacity'] - ship['empty_slots'], random.randint(1, 15))
+            print(f"Unloading {containers_to_unload} containers from Ship ID {ship['ship_id']}.")
+            ship['empty_slots'] += containers_to_unload  # Update empty slots
+            print(f"Empty Slots on Ship ID {ship['ship_id']}: {ship['empty_slots']}")
+            unloaded_ships.add(ship['ship_id'])  # Mark as unloaded
 
-        # CDF
-        plt.subplot(1, 3, 3)
-        sorted_results = np.sort(self.results)
-        yvals = np.arange(1, len(sorted_results) + 1) / len(sorted_results)
-        plt.plot(sorted_results, yvals, marker='.', linestyle='none')
-        plt.title('Cumulative Distribution Function (CDF)')
-        plt.xlabel('Total Time')
-        plt.ylabel('Cumulative Probability')
+        # Check if the ship is departing and has not been loaded yet
+        if (ship['ship_id'] not in loaded_ships) and (ship['departure_time'] <= current_time):
+            print(f"Ship ID {ship['ship_id']} is departing.")
+            print(f"Capacity: {ship['max_capacity']}")
+            # Simulate loading containers
+            containers_to_load = min(ship['empty_slots'], random.randint(1, 10))
+            print(f"Loading {containers_to_load} containers onto Ship ID {ship['ship_id']}.")
+            ship['empty_slots'] -= containers_to_load  # Update empty slots
+            print(f"Empty Slots on Ship ID {ship['ship_id']}: {ship['empty_slots']}")
+            loaded_ships.add(ship['ship_id'])  # Mark as loaded
 
-        plt.tight_layout()
-        plt.show()
-
-# Example usage
-num_simulations = 1000
-simulation = ShipyardSimulation(num_runs=num_simulations)
-simulation.run_simulations()
-simulation.visualize_results()
+    # Increment the time by 15 minutes
+    current_time += timedelta(minutes = 15)
