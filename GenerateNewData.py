@@ -6,10 +6,10 @@ from datetime import datetime, timedelta
 
 from ShipYard import *
 
-np.random.seed(1310)
+np.random.seed(2024)
 
 # 1. Generate Port Data
-total_ports = 25
+total_ports = np.random.randint(10, 30)
 print("\nNumber of ports:", total_ports)
 
 def generate_ports(num_ports):
@@ -31,7 +31,7 @@ print(port_data.head(10))
 
 
 # 2. Generate Ship Data
-total_ships = 1000
+total_ships = np.random.randint(10**2, 5*10**2)
 print("\nNumber of ships:", total_ships)
 
 def generate_ships(num_ships):
@@ -53,6 +53,7 @@ def generate_ships(num_ships):
         destination_port = two_random_ports.iloc[1]['port_code'] # destination port
         current_time = datetime.datetime(2024, 10, 13, 18, 00)
         arrival_time = current_time + timedelta(hours = random.randint(1, 100), minutes = random.randint(0, 59), seconds = random.randint(0, 59))
+        departure_time = arrival_time + timedelta(hours = random.randint(2, 130), minutes = random.randint(0, 59), seconds = random.randint(0, 59))
         # loading_time = Ship.getLoadingTime()
         
         ships_data.append({
@@ -66,10 +67,10 @@ def generate_ships(num_ships):
             'origin_port': origin_port,
             'destination_port': destination_port,
             # 'loading_time': loading_time,
-            'arrival_time': arrival_time
+            'arrival_time': arrival_time,
+            'departure_time': departure_time
         })
-    
-    return pd.DataFrame(ships_data).sort_values(by = ['arrival_time'])
+    return pd.DataFrame(ships_data)
 
 ships_data = generate_ships(total_ships)
 
@@ -78,7 +79,7 @@ print(ships_data.head(50))
 
 
 # 3. Generate Container data
-total_containers = 10000
+total_containers = np.random.randint(5*10**3, 10**4)
 print("\nNumber of containers:", total_containers)
 
 def generate_containers(ships_data, num_containers):
@@ -91,7 +92,7 @@ def generate_containers(ships_data, num_containers):
         container_id = generate_random_container_code()
         eligible_ships = ships_data.loc[ships_data['empty_slots'] > 0, 'ship_id'].values
         ship_ID = random.choice(eligible_ships)
-        ships_data.loc[ships_data['ship_id'] == ship_ID, 'empty_slots'] -= 1
+        ships_data[ships_data['ship_id'] == ship_ID]['empty_slots'] -= 1
         
         containers_data.append({
             'container_id': container_id,

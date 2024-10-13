@@ -1,25 +1,26 @@
 from ShipYard import ShipYard,Container,Ship
+import datetime
 
 def rmSort(a):  # a is an array
-  if len(a) == 1:
-    return a
-  mid = len(a)//2
-  a1 = rmSort(a[0:mid])
-  a2 = rmSort(a[mid:len(a)])
-  return merge2(a1, a2)
+    if len(a) == 1:
+        return a
+    mid = len(a)//2
+    a1 = rmSort(a[0:mid])
+    a2 = rmSort(a[mid:len(a)])
+    return merge2(a1, a2)
 
 def merge2(a1, a2):
-  i = 0
-  j = 0
-  r = []
-  while i < len(a1) or j < len(a2):
-    if (j == len(a2)) or (i < len(a1) and a1[i].getLoadingTime() < a2[j].getLoadingTime()):
-      r.append(a1[i]) # pick item from a1
-      i += 1
-    else:
-      r.append(a2[j]) # pick item from a2
-      j += 1
-  return r
+    i = 0
+    j = 0
+    r = []
+    while i < len(a1) or j < len(a2):
+        if (j == len(a2)) or (i < len(a1) and a1[i].getLoadingTime() < a2[j].getLoadingTime()):
+            r.append(a1[i]) # pick item from a1
+            i += 1
+        else:
+            r.append(a2[j]) # pick item from a2
+            j += 1
+    return r
 
 def loadingAlgorithm(shipyard,containers):
     rownum, colnum = shipyard.getDimensions()
@@ -41,7 +42,41 @@ def loadingAlgorithm(shipyard,containers):
                 return shipyard
     return shipyard
 
-def calculateEfficiency(shipyard:ShipYard,ship_schedule:list):
+
+def getUnpackingOrder(shipyard:ShipYard):
+    shipMapping = shipyard.shipmapping
+    def sortingKey(e):
+        return e.getLoadingTime()
+    ships = sorted(list(shipMapping.keys()), key=sortingKey)
+    unpackingOrder = [shipMapping[x] for x in ships]
+    return unpackingOrder
+
+def calculateEfficiency(shipyard:ShipYard):
+    unpackingOrder = getUnpackingOrder(shipyard)
+    containerMapping = shipyard.containermapping
+    placeNum = 0
+    removeNum = 0
+    for ship in unpackingOrder:
+        i=0
+        while ship:
+            x,y = containerMapping[ship[i]]
+            current = None
+            stack = shipyard.getStack(x,y)
+            print(ship)
+            print(ship[i])
+            print([x.getLabel() for x in stack])
+            temp = []
+            found = False
+            for j in stack.getHeight():
+                current = stack.remove()
+                if current in ship:                        
+                    ship.remove(current)
+                    removeNum += 1
+                    
+                else:
+                    temp.append(current)
+            
+        
     pass
 
 
@@ -54,3 +89,5 @@ if __name__ == '__main__':
 
     result = loadingAlgorithm(shipyard,containers)
     result.printShipYard()
+    print(result.getShips())
+    print(getUnpackingOrder(result))

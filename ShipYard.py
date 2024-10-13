@@ -56,6 +56,8 @@ class ShipYard:
         self.x = x
         self.y = y
         self.shipyard = []
+        self.shipmapping = {}
+        self.containermapping = {}
         if x<=1 or y<=1:
             raise(Exception,"Rows and columns must be positive integers")
         for row in range(x):
@@ -66,6 +68,10 @@ class ShipYard:
 
     def add(self,x:int,y:int,container:Container):
         self.shipyard[x][y].add(container)
+        if container.ship not in self.shipmapping:
+            self.shipmapping[container.ship] = []
+        self.shipmapping[container.ship].append(container)
+        self.containermapping[container] = x,y
     
     def remove(self,x,y):
         return self.shipyard[x][y].remove()
